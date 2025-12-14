@@ -1,0 +1,7 @@
+{
+  "name": "Neura Map",
+  "description": "A futuristic, dark-themed interactive map for exploring FIRST Tech Challenge teams using Gemini AI for discovery.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
