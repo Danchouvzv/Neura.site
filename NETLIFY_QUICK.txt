@@ -1,0 +1,56 @@
+╔══════════════════════════════════════════════════════════════╗
+║          🚀 БЫСТРЫЙ ДЕПЛОЙ НА NETLIFY                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+✅ ПРОЕКТ ГОТОВ!
+   - Репозиторий: https://github.com/Danchouvzv/neura-ftcc
+   - Конфигурация: netlify.toml создан
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 ШАГИ ДЛЯ ДЕПЛОЯ:
+
+1. ЗАЙДИТЕ НА NETLIFY.COM
+   → Войдите через GitHub
+
+2. ADD NEW SITE → IMPORT AN EXISTING PROJECT
+   → Выберите репозиторий: Danchouvzv/neura-ftcc
+
+3. НАСТРОЙКИ (автоматически из netlify.toml):
+   ✅ Build command: npm run build
+   ✅ Publish directory: dist
+   ✅ Branch: main
+
+4. ДОБАВЬТЕ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ:
+   Site settings → Environment variables → Add:
+   
+   VITE_SUPABASE_URL = ваш_supabase_url
+   VITE_SUPABASE_ANON_KEY = ваш_supabase_anon_key
+   GEMINI_API_KEY = ваш_gemini_key (опционально)
+
+5. DEPLOY SITE!
+   → Нажмите кнопку "Deploy site"
+
+6. ПОСЛЕ ДЕПЛОЯ:
+   → Скопируйте URL (например: https://your-site.netlify.app)
+   → Добавьте его в Supabase CORS:
+     Supabase Dashboard → Settings → API → 
+     Additional Allowed Origins → Добавьте URL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 ДОБАВЛЕНИЕ СОБСТВЕННОГО ДОМЕНА:
+
+1. Site settings → Domain management → Add custom domain
+2. Введите ваш домен
+3. Добавьте DNS записи у регистратора:
+   - A запись: @ → 75.2.60.5
+   - CNAME: www → your-site.netlify.app
+4. Подождите 1-2 часа
+5. SSL выдастся автоматически
+
+Подробнее: NETLIFY_DEPLOY.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ВСЕ ГОТОВО! УДАЧИ! 🚀

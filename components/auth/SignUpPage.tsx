@@ -229,15 +229,15 @@ const SignUpPage: React.FC = () => {
       ></div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md px-2 sm:px-4">
         {/* Enhanced Logo & Branding */}
-        <div className="flex items-center justify-center gap-4 mb-12 animate-fade-in">
+        <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10 md:mb-12 animate-fade-in">
           <div className="relative group">
             {/* Multiple Glow Layers */}
             <div className="absolute inset-0 bg-cyan-500/40 blur-3xl rounded-2xl animate-pulse group-hover:animate-none"></div>
             <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
             
-            <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-br from-black via-neutral-900 to-black border-2 border-cyan-500/60 flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.7)] group-hover:shadow-[0_0_80px_rgba(6,182,212,1)] transition-all duration-700 group-hover:scale-110 group-hover:border-cyan-400 group-hover:rotate-3">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl sm:rounded-2xl bg-gradient-to-br from-black via-neutral-900 to-black border-2 border-cyan-500/60 flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.7)] group-hover:shadow-[0_0_80px_rgba(6,182,212,1)] transition-all duration-700 group-hover:scale-110 group-hover:border-cyan-400 group-hover:rotate-3">
               {/* Animated Border Gradient */}
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-20 animate-spin-slow" style={{ animationDuration: '3s' }}></div>
               
@@ -257,10 +257,10 @@ const SignUpPage: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col">
-            <h1 className="text-5xl font-display font-black bg-gradient-to-r from-white via-cyan-400 via-white to-cyan-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black bg-gradient-to-r from-white via-cyan-400 via-white to-cyan-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
               NEURA
             </h1>
-            <span className="text-xs font-mono text-cyan-400/90 tracking-[0.4em] font-bold mt-1">
+            <span className="text-[10px] sm:text-xs font-mono text-cyan-400/90 tracking-[0.3em] sm:tracking-[0.4em] font-bold mt-1">
               JOIN THE FUTURE
             </span>
           </div>
@@ -269,33 +269,33 @@ const SignUpPage: React.FC = () => {
         {/* Enhanced Sign Up Form */}
         <div className="relative animate-fade-in-up">
           {/* Multi-layer Glow Effect */}
-          <div className="absolute -inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-neura-pink/30 rounded-3xl blur-3xl opacity-60 animate-pulse"></div>
-          <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-neura-pink/20 rounded-3xl blur-2xl opacity-40"></div>
+          <div className="absolute -inset-4 sm:-inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-neura-pink/30 rounded-2xl sm:rounded-3xl blur-3xl opacity-60 animate-pulse"></div>
+          <div className="absolute -inset-3 sm:-inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-neura-pink/20 rounded-2xl sm:rounded-3xl blur-2xl opacity-40"></div>
           
-          <div className="relative bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-3xl border-2 border-neutral-800/70 rounded-3xl p-10 shadow-[0_0_100px_rgba(6,182,212,0.5)] hover:shadow-[0_0_120px_rgba(6,182,212,0.7)] transition-all duration-500">
+          <div className="relative bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-3xl border-2 border-neutral-800/70 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_100px_rgba(6,182,212,0.5)] hover:shadow-[0_0_120px_rgba(6,182,212,0.7)] transition-all duration-500">
             {/* Animated Border Gradient */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-transparent to-neura-pink/20 opacity-0 hover:opacity-100 transition-opacity duration-500 -z-10 blur-xl"></div>
+            <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-cyan-500/20 via-transparent to-neura-pink/20 opacity-0 hover:opacity-100 transition-opacity duration-500 -z-10 blur-xl"></div>
             
             {/* Decorative Corner Elements */}
-            <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-3xl"></div>
-            <div className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-neura-pink/30 rounded-tr-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-20 h-20 border-b-2 border-l-2 border-neura-pink/30 rounded-bl-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-cyan-500/30 rounded-br-3xl"></div>
+            <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-2xl sm:rounded-tl-3xl"></div>
+            <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-r-2 border-neura-pink/30 rounded-tr-2xl sm:rounded-tr-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-l-2 border-neura-pink/30 rounded-bl-2xl sm:rounded-bl-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-r-2 border-cyan-500/30 rounded-br-2xl sm:rounded-br-3xl"></div>
             
             {/* Decorative Lines */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent"></div>
             <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neura-pink/60 to-transparent"></div>
             
-            <div className="mb-8 text-center">
-              <h2 className="text-4xl font-display font-bold mb-3 bg-gradient-to-r from-white via-cyan-400 to-white bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+            <div className="mb-6 sm:mb-8 text-center">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-2 sm:mb-3 bg-gradient-to-r from-white via-cyan-400 to-white bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
                 Create Account
               </h2>
-              <p className="text-sm text-gray-400 font-mono tracking-wide">
+              <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wide">
                 Start your journey with NEURA today
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div className="group relative">
                 <label className="block text-xs font-mono text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
                   <svg className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,7 +309,7 @@ const SignUpPage: React.FC = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Choose a username"
-                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-4 px-5 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10"
+                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10 min-h-[44px]"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400/0 via-cyan-400/5 to-cyan-400/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0"></div>
@@ -329,7 +329,7 @@ const SignUpPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-4 px-5 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10"
+                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10 min-h-[44px]"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400/0 via-cyan-400/5 to-cyan-400/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0"></div>
@@ -349,7 +349,7 @@ const SignUpPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-4 px-5 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono tracking-widest group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10"
+                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono tracking-widest group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10 min-h-[44px]"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400/0 via-cyan-400/5 to-cyan-400/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0"></div>
@@ -383,7 +383,7 @@ const SignUpPage: React.FC = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-4 px-5 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono tracking-widest group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10"
+                    className="w-full bg-black border-2 border-neutral-800 hover:border-cyan-400/50 focus:border-cyan-400 rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/40 transition-all text-white !text-white placeholder-gray-500 font-mono tracking-widest group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] relative z-10 min-h-[44px]"
                     required
                   />
                   {confirmPassword && password === confirmPassword && (
