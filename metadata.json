@@ -1,0 +1,7 @@
+{
+  "name": "FTC TeamHub",
+  "description": "A comprehensive collaboration platform for FIRST Tech Challenge teams, featuring task management, role-based workflows, knowledge base, innovation hub, and analytics.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
