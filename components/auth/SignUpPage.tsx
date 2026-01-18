@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -12,6 +12,10 @@ const SignUpPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [particleCount, setParticleCount] = useState(25);
+  const [isLowPerformance, setIsLowPerformance] = useState(false);
+  const [useCanvasParticles, setUseCanvasParticles] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -20,6 +24,135 @@ const SignUpPage: React.FC = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Detect low-performance devices and reduce animations
+  useEffect(() => {
+    const checkPerformance = () => {
+      // Check for mobile devices or low-end hardware
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasLowMemory = (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+      const hasSlowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
+
+      const lowPerf = isMobile || hasLowMemory || hasSlowCPU;
+      setIsLowPerformance(lowPerf);
+      setUseCanvasParticles(!lowPerf); // Disable canvas on low performance devices
+    };
+
+    checkPerformance();
+  }, []);
+
+  // Animated particles effect
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      color: string;
+      alpha: number;
+      shape: 'circle' | 'square' | 'triangle';
+    }> = [];
+
+    // Create particles with different shapes
+    for (let i = 0; i < particleCount; i++) {
+      const shapes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        size: Math.random() * 4 + 1,
+        color: ['#06B6D4', '#D63384', '#8B5CF6', '#10B981'][Math.floor(Math.random() * 4)],
+        alpha: Math.random() * 0.7 + 0.3,
+        shape: shapes[Math.floor(Math.random() * shapes.length)]
+      });
+    }
+
+    let animationId: number;
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle, index) => {
+        // Update position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        // Wrap around edges
+        if (particle.x < 0) particle.x = canvas.width;
+        if (particle.x > canvas.width) particle.x = 0;
+        if (particle.y < 0) particle.y = canvas.height;
+        if (particle.y > canvas.height) particle.y = 0;
+
+        // Draw particle based on shape
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.fillStyle = particle.color;
+        ctx.strokeStyle = particle.color;
+        ctx.lineWidth = 0.5;
+
+        if (particle.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (particle.shape === 'square') {
+          ctx.fillRect(particle.x - particle.size/2, particle.y - particle.size/2, particle.size, particle.size);
+        } else if (particle.shape === 'triangle') {
+          ctx.beginPath();
+          ctx.moveTo(particle.x, particle.y - particle.size/2);
+          ctx.lineTo(particle.x - particle.size/2, particle.y + particle.size/2);
+          ctx.lineTo(particle.x + particle.size/2, particle.y + particle.size/2);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Draw glow
+        ctx.shadowColor = particle.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.restore();
+
+        // Connect nearby particles with lines
+        particles.slice(index + 1).forEach(otherParticle => {
+          const dx = particle.x - otherParticle.x;
+          const dy = particle.y - otherParticle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            ctx.save();
+            ctx.globalAlpha = (1 - distance / 120) * 0.2;
+            ctx.strokeStyle = particle.color;
+            ctx.lineWidth = 0.3;
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(otherParticle.x, otherParticle.y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [particleCount]);
 
   useEffect(() => {
     // Calculate password strength
@@ -176,47 +309,98 @@ const SignUpPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neura-black text-white relative overflow-hidden flex items-center justify-center p-4">
+      {/* Animated Canvas Particles */}
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ opacity: 0.7 }}
+      />
+
       {/* Enhanced Animated Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-neura-black via-neutral-950 to-neura-black"></div>
-        
+
         {/* Animated Gradient Orbs */}
-        <div 
+        <div
           className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animation: 'float 8s ease-in-out infinite',
             transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * 0.01}px)`
           }}
         ></div>
-        <div 
+        <div
           className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-neura-pink/15 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animationDelay: '2s',
             animation: 'float 10s ease-in-out infinite',
             transform: `translate(${mousePosition.x * 0.01}px, ${mousePosition.y * -0.01}px)`
           }}
         ></div>
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animationDelay: '4s',
             animation: 'float 12s ease-in-out infinite',
             transform: `translate(${mousePosition.x * -0.015}px, ${mousePosition.y * 0.015}px)`
           }}
         ></div>
-        
-        {/* Floating Particles */}
-        {[...Array(20)].map((_, i) => (
+
+        {/* Optimized Floating Shapes */}
+        {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-cyan-400/30 rounded-full"
+            className="absolute opacity-10 animate-float-simple"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
+              animationDelay: `${Math.random() * 6}s`,
+              animationDuration: `${8 + Math.random() * 6}s`,
             }}
-          ></div>
+          >
+            {i % 3 === 0 && (
+              <div className="w-8 h-8 border border-cyan-500/20 rounded-full"></div>
+            )}
+            {i % 3 === 1 && (
+              <div className="w-6 h-6 border border-neura-pink/20 rotate-45"></div>
+            )}
+            {i % 3 === 2 && (
+              <div className="w-7 h-7 bg-gradient-to-br from-cyan-500/10 to-neura-pink/10 rounded"></div>
+            )}
+          </div>
+        ))}
+
+        {/* Dynamic Wave Patterns */}
+        <div className="absolute inset-0">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse"
+              style={{
+                top: `${30 + i * 20}%`,
+                animationDelay: `${i * 1.5}s`,
+                transform: `skew(${i * 5}deg)`,
+              }}
+            ></div>
+          ))}
+        </div>
+
+        {/* Minimal Floating Elements */}
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute opacity-15 animate-float-simple"
+            style={{
+              left: `${20 + i * 20}%`,
+              top: `${30 + (i % 2) * 40}%`,
+              animationDelay: `${i * 1.5}s`,
+              animationDuration: `${4 + i * 0.8}s`,
+            }}
+          >
+            {i % 4 === 0 && <span className="text-lg">⚡</span>}
+            {i % 4 === 1 && <span className="text-lg">🚀</span>}
+            {i % 4 === 2 && <span className="text-lg">🔥</span>}
+            {i % 4 === 3 && <span className="text-lg">💎</span>}
+          </div>
         ))}
       </div>
 
@@ -266,33 +450,75 @@ const SignUpPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced Sign Up Form */}
+        {/* Performance-aware Sign Up Form */}
         <div className="relative animate-fade-in-up">
-          {/* Multi-layer Glow Effect */}
-          <div className="absolute -inset-4 sm:-inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-neura-pink/30 rounded-2xl sm:rounded-3xl blur-3xl opacity-60 animate-pulse"></div>
-          <div className="absolute -inset-3 sm:-inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-neura-pink/20 rounded-2xl sm:rounded-3xl blur-2xl opacity-40"></div>
-          
-          <div className="relative bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-3xl border-2 border-neutral-800/70 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_100px_rgba(6,182,212,0.5)] hover:shadow-[0_0_120px_rgba(6,182,212,0.7)] transition-all duration-500">
+          {/* Optimized Glow Effects */}
+          <div className="absolute -inset-4 sm:-inset-6 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-neura-pink/20 rounded-2xl sm:rounded-3xl blur-2xl opacity-50 animate-pulse-slow"></div>
+
+          <div className="relative bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-2xl border-2 border-neutral-800/70 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_60px_rgba(6,182,212,0.3)] hover:shadow-[0_0_80px_rgba(6,182,212,0.5)] transition-all duration-300">
             {/* Animated Border Gradient */}
             <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-cyan-500/20 via-transparent to-neura-pink/20 opacity-0 hover:opacity-100 transition-opacity duration-500 -z-10 blur-xl"></div>
             
-            {/* Decorative Corner Elements */}
-            <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-2xl sm:rounded-tl-3xl"></div>
-            <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-r-2 border-neura-pink/30 rounded-tr-2xl sm:rounded-tr-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-l-2 border-neura-pink/30 rounded-bl-2xl sm:rounded-bl-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-r-2 border-cyan-500/30 rounded-br-2xl sm:rounded-br-3xl"></div>
+            {/* Simplified Corner Elements */}
+            <div className="absolute top-0 left-0 w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-2xl animate-pulse-slow"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 sm:w-12 sm:h-12 border-t-2 border-r-2 border-neura-pink/30 rounded-tr-2xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-l-2 border-neura-pink/30 rounded-bl-2xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-12 sm:h-12 border-b-2 border-r-2 border-cyan-500/30 rounded-br-2xl animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
+
+            {/* Animated Matrix-style Background */}
+            <div className="absolute inset-0 opacity-5">
+              <svg className="w-full h-full" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="matrix" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <rect x="2" y="2" width="16" height="16" fill="none" stroke="#06B6D4" strokeWidth="0.2" opacity="0.3"/>
+                    <circle cx="10" cy="10" r="0.5" fill="#D63384" opacity="0.6"/>
+                  </pattern>
+                </defs>
+                <rect width="400" height="400" fill="url(#matrix)" className="animate-pulse"/>
+              </svg>
+            </div>
+
+            {/* Floating Tech Elements */}
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute opacity-15 text-cyan-400 animate-spin-slow"
+                style={{
+                  left: `${8 + i * 12}%`,
+                  top: `${15 + (i % 2) * 70}%`,
+                  animationDelay: `${i * 0.6}s`,
+                  animationDuration: `${8 + i * 0.8}s`,
+                }}
+              >
+                {i % 8 === 0 && <span className="text-3xl">⟨</span>}
+                {i % 8 === 1 && <span className="text-2xl">⟩</span>}
+                {i % 8 === 2 && <span className="text-xl">⟦</span>}
+                {i % 8 === 3 && <span className="text-2xl">⟧</span>}
+                {i % 8 === 4 && <span className="text-xl">⦃</span>}
+                {i % 8 === 5 && <span className="text-2xl">⦄</span>}
+                {i % 8 === 6 && <span className="text-xl">⦗</span>}
+                {i % 8 === 7 && <span className="text-2xl">⦘</span>}
+              </div>
+            ))}
             
-            {/* Decorative Lines */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neura-pink/60 to-transparent"></div>
-            
-            <div className="mb-6 sm:mb-8 text-center">
+            <div className="mb-6 sm:mb-8 text-center relative">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-2 sm:mb-3 bg-gradient-to-r from-white via-cyan-400 to-white bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
                 Create Account
               </h2>
               <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wide">
                 Start your journey with NEURA today
               </p>
+
+              {/* Performance Toggle */}
+              <div className="absolute top-0 right-0 flex items-center gap-2">
+                <button
+                  onClick={() => setUseCanvasParticles(!useCanvasParticles)}
+                  className="px-2 py-1 rounded-lg bg-neutral-800/50 border border-neutral-700 text-xs font-mono text-gray-400 hover:text-cyan-400 hover:border-cyan-400/50 transition-all"
+                  title="Toggle visual effects"
+                >
+                  {useCanvasParticles ? "🎨" : "⚡"}
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
@@ -481,6 +707,26 @@ const SignUpPage: React.FC = () => {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
+        @keyframes particleFloat {
+          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+          25% { transform: translateY(-15px) rotate(90deg) scale(1.1); }
+          50% { transform: translateY(-30px) rotate(180deg) scale(0.9); }
+          75% { transform: translateY(-15px) rotate(270deg) scale(1.05); }
+        }
+        @keyframes shapeMorph {
+          0%, 100% { border-radius: 50%; transform: rotate(0deg) scale(1); clip-path: circle(50%); }
+          25% { border-radius: 0%; transform: rotate(90deg) scale(1.2); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+          50% { border-radius: 25%; transform: rotate(180deg) scale(0.8); clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+          75% { border-radius: 75%; transform: rotate(270deg) scale(1.1); clip-path: circle(60% at 30% 40%); }
+        }
+        @keyframes waveFlow {
+          0%, 100% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+          50% { transform: translateX(0%) skewX(0deg); opacity: 0.8; }
+        }
+        @keyframes techGlow {
+          0%, 100% { text-shadow: 0 0 5px currentColor; transform: scale(1); }
+          50% { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; transform: scale(1.1); }
+        }
         .animate-gradient {
           animation: gradient 3s ease infinite;
         }
@@ -489,6 +735,18 @@ const SignUpPage: React.FC = () => {
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.8s ease-out;
+        }
+        .animate-particle-float {
+          animation: particleFloat 8s ease-in-out infinite;
+        }
+        .animate-shape-morph {
+          animation: shapeMorph 10s ease-in-out infinite;
+        }
+        .animate-wave-flow {
+          animation: waveFlow 6s ease-in-out infinite;
+        }
+        .animate-tech-glow {
+          animation: techGlow 2s ease-in-out infinite;
         }
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -500,6 +758,14 @@ const SignUpPage: React.FC = () => {
         }
         .animate-spin-slow {
           animation: spin 3s linear infinite;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
         }
       `}</style>
     </div>

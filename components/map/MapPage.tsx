@@ -5,6 +5,7 @@ import { INITIAL_TEAMS } from '../../constants';
 import LeafletMap from './LeafletMap';
 import TeamCard from './TeamCard';
 import TeamDetailsPanel from './TeamDetailsPanel';
+import TeamLogosCarousel from './TeamLogosCarousel';
 import { findTeams } from '../../services/geminiService';
 
 const MapPage: React.FC = () => {
@@ -213,6 +214,11 @@ const MapPage: React.FC = () => {
                <p className="text-xs text-gray-500 font-mono">Try searching for a team</p>
              </div>
            )}
+        </div>
+
+        {/* TEAM LOGOS CAROUSEL */}
+        <div className="hidden md:block px-3 py-4 border-t border-neutral-800/60 z-20">
+          <TeamLogosCarousel />
         </div>
 
         {/* BOTTOM LEFT: Add Team Link & Q&A Link */}

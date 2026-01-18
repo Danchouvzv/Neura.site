@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -9,6 +9,8 @@ const SignInPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isLowPerformance, setIsLowPerformance] = useState(false);
+  const [useCanvasParticles, setUseCanvasParticles] = useState(true);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -17,6 +19,126 @@ const SignInPage: React.FC = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Detect low-performance devices and reduce animations
+  useEffect(() => {
+    const checkPerformance = () => {
+      // Check for mobile devices or low-end hardware
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasLowMemory = (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+      const hasSlowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
+
+      const lowPerf = isMobile || hasLowMemory || hasSlowCPU;
+      setIsLowPerformance(lowPerf);
+      setUseCanvasParticles(!lowPerf); // Disable canvas on low performance devices
+    };
+
+    checkPerformance();
+
+    // Throttle mouse move for better performance
+    let throttleTimer: number;
+    const throttledMouseMove = (e: MouseEvent) => {
+      if (!throttleTimer) {
+        throttleTimer = window.setTimeout(() => {
+          setMousePosition({ x: e.clientX, y: e.clientY });
+          throttleTimer = 0;
+        }, 16); // ~60fps
+      }
+    };
+
+    window.addEventListener('mousemove', throttledMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', throttledMouseMove);
+      if (throttleTimer) clearTimeout(throttleTimer);
+    };
+  }, []);
+
+  // Lightweight Canvas particles effect (only on high-performance devices)
+  useEffect(() => {
+    if (!useCanvasParticles) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'fixed inset-0 pointer-events-none z-0';
+    canvas.style.opacity = '0.3';
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      color: string;
+      alpha: number;
+    }> = [];
+
+    // Create fewer, simpler particles
+    for (let i = 0; i < 12; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 2 + 1,
+        color: ['#D63384', '#06B6D4'][Math.floor(Math.random() * 2)],
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+
+    let animationId: number;
+    let lastTime = 0;
+
+    const animate = (currentTime: number) => {
+      // Throttle to ~30fps for better performance
+      if (currentTime - lastTime < 33) {
+        animationId = requestAnimationFrame(animate);
+        return;
+      }
+      lastTime = currentTime;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle) => {
+        // Update position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        // Wrap around edges
+        if (particle.x < 0) particle.x = canvas.width;
+        if (particle.x > canvas.width) particle.x = 0;
+        if (particle.y < 0) particle.y = canvas.height;
+        if (particle.y > canvas.height) particle.y = 0;
+
+        // Draw simple particle
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate(0);
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      if (canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+      }
+    };
+  }, [useCanvasParticles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,48 +270,103 @@ const SignInPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neura-black text-white relative overflow-hidden flex items-center justify-center p-4">
+      {/* Performance-aware background effects */}
+      {useCanvasParticles ? (
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-40">
+          {/* Canvas particles will be created dynamically */}
+        </div>
+      ) : (
+        /* Lightweight CSS particle system for low-performance devices */
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          {[...Array(isLowPerformance ? 8 : 15)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-neura-pink/40 rounded-full animate-float-particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${3 + Math.random() * 4}s`,
+              }}
+            ></div>
+          ))}
+        </div>
+      )}
+
       {/* Enhanced Animated Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-neura-black via-neutral-950 to-neura-black"></div>
-        
+
         {/* Animated Gradient Orbs */}
-        <div 
+        <div
           className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-neura-pink/15 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animation: 'float 8s ease-in-out infinite',
             transform: `translate(${mousePosition.x * 0.01}px, ${mousePosition.y * 0.01}px)`
           }}
         ></div>
-        <div 
+        <div
           className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animationDelay: '2s',
             animation: 'float 10s ease-in-out infinite',
             transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px)`
           }}
         ></div>
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ 
+          style={{
             animationDelay: '4s',
             animation: 'float 12s ease-in-out infinite',
             transform: `translate(${mousePosition.x * 0.015}px, ${mousePosition.y * 0.015}px)`
           }}
         ></div>
-        
-        {/* Floating Particles */}
-        {[...Array(20)].map((_, i) => (
+
+        {/* Optimized Floating Geometric Shapes */}
+        {[...Array(isLowPerformance ? 4 : 8)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-neura-pink/30 rounded-full"
+            className="absolute opacity-20 animate-float-simple"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
+              animationDelay: `${Math.random() * 4}s`,
+              animationDuration: `${6 + Math.random() * 6}s`,
             }}
-          ></div>
+          >
+            {i % 4 === 0 && (
+              <div className="w-8 h-8 border border-neura-pink/30 rotate-45"></div>
+            )}
+            {i % 4 === 1 && (
+              <div className="w-6 h-6 border border-cyan-500/30 rounded-full"></div>
+            )}
+            {i % 4 === 2 && (
+              <div className="w-7 h-7 border border-purple-500/30 rotate-12"></div>
+            )}
+            {i % 4 === 3 && (
+              <div className="w-5 h-5 bg-neura-pink/20 rounded"></div>
+            )}
+          </div>
         ))}
+
+        {/* Dynamic Light Rays */}
+        <div className="absolute inset-0">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-px bg-gradient-to-b from-transparent via-neura-pink/20 to-transparent"
+              style={{
+                left: `${20 + i * 15}%`,
+                top: 0,
+                height: '100%',
+                animation: `pulse ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.3}s`,
+                transform: `rotate(${i * 15}deg)`,
+                transformOrigin: 'center',
+              }}
+            ></div>
+          ))}
+        </div>
       </div>
 
       {/* Enhanced Grid Pattern Overlay */}
@@ -238,53 +415,117 @@ const SignInPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced Sign In Form */}
+        {/* Performance-aware Sign In Form */}
         <div className="relative animate-fade-in-up">
-          {/* Multi-layer Glow Effect */}
-          <div className="absolute -inset-4 sm:-inset-6 bg-gradient-to-r from-neura-pink/30 via-purple-500/20 to-cyan-500/30 rounded-2xl sm:rounded-3xl blur-3xl opacity-60 animate-pulse"></div>
-          <div className="absolute -inset-3 sm:-inset-4 bg-gradient-to-r from-neura-pink/20 via-purple-500/15 to-cyan-500/20 rounded-2xl sm:rounded-3xl blur-2xl opacity-40"></div>
-          
-          <div className="relative bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-3xl border-2 border-neutral-800/70 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_100px_rgba(214,51,132,0.5)] hover:shadow-[0_0_120px_rgba(214,51,132,0.7)] transition-all duration-500">
+          {/* Optimized Glow Effects */}
+          {!isLowPerformance && (
+            <>
+              <div className="absolute -inset-4 sm:-inset-6 bg-gradient-to-r from-neura-pink/20 via-purple-500/15 to-cyan-500/20 rounded-2xl sm:rounded-3xl blur-2xl opacity-50 animate-pulse-slow"></div>
+              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-neura-pink/30 via-transparent to-cyan-500/30 opacity-0 hover:opacity-10 transition-opacity duration-500 blur-sm"></div>
+            </>
+          )}
+
+          <div className={`relative ${isLowPerformance ? 'bg-neura-card/95' : 'bg-gradient-to-br from-neura-card/98 via-neura-card/95 to-neura-card/98 backdrop-blur-2xl'} border-2 border-neutral-800/70 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_60px_rgba(214,51,132,0.3)] hover:shadow-[0_0_80px_rgba(214,51,132,0.5)] transition-all duration-300 overflow-hidden`}>
             {/* Animated Border Gradient */}
             <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-neura-pink/20 via-transparent to-cyan-500/20 opacity-0 hover:opacity-100 transition-opacity duration-500 -z-10 blur-xl"></div>
             
             {/* Decorative Corner Elements */}
-            <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-l-2 border-neura-pink/30 rounded-tl-2xl sm:rounded-tl-3xl"></div>
-            <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-r-2 border-cyan-500/30 rounded-tr-2xl sm:rounded-tr-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-l-2 border-cyan-500/30 rounded-bl-2xl sm:rounded-bl-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-r-2 border-neura-pink/30 rounded-br-2xl sm:rounded-br-3xl"></div>
-            
+            <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-l-2 border-neura-pink/30 rounded-tl-2xl sm:rounded-tl-3xl animate-pulse"></div>
+            <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-t-2 border-r-2 border-cyan-500/30 rounded-tr-2xl sm:rounded-tr-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-l-2 border-cyan-500/30 rounded-bl-2xl sm:rounded-bl-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-b-2 border-r-2 border-neura-pink/30 rounded-br-2xl sm:rounded-br-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+
             {/* Decorative Lines */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neura-pink/60 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent"></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neura-pink/60 to-transparent animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+
+            {/* Optimized Background Pattern */}
+            {!isLowPerformance && (
+              <div className="absolute inset-0 opacity-5">
+                <div className="w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(214,51,132,0.1)_0%,_transparent_50%)] animate-pulse-slow"></div>
+              </div>
+            )}
+
+            {/* Optimized Floating Tech Icons */}
+            {[...Array(isLowPerformance ? 3 : 6)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute opacity-15 text-neura-pink animate-float-simple"
+                style={{
+                  left: `${10 + i * 15}%`,
+                  top: `${20 + (i % 2) * 60}%`,
+                  animationDelay: `${i * 1.2}s`,
+                  animationDuration: `${3 + i * 0.5}s`,
+                }}
+              >
+                {i % 6 === 0 && <span className="text-lg">⚡</span>}
+                {i % 6 === 1 && <span className="text-lg">🔧</span>}
+                {i % 6 === 2 && <span className="text-lg">⚙️</span>}
+                {i % 6 === 3 && <span className="text-lg">🚀</span>}
+                {i % 6 === 4 && <span className="text-lg">🤖</span>}
+                {i % 6 === 5 && <span className="text-lg">⚡</span>}
+              </div>
+            ))}
             
-            <div className="mb-6 sm:mb-8 text-center">
+            <div className="mb-6 sm:mb-8 text-center relative">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-2 sm:mb-3 bg-gradient-to-r from-white via-neura-pink to-white bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
                 Sign In
               </h2>
               <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wide">
                 Enter your credentials to continue your journey
               </p>
+
+              {/* Performance Toggle */}
+              <div className="absolute top-0 right-0 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setUseCanvasParticles(!useCanvasParticles);
+                    setIsLowPerformance(!isLowPerformance);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-neutral-800/50 border border-neutral-700 text-xs font-mono text-gray-400 hover:text-neura-pink hover:border-neura-pink/50 transition-all"
+                  title={isLowPerformance ? "Enable enhanced effects" : "Disable for better performance"}
+                >
+                  {isLowPerformance ? "⚡" : "🎨"}
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
               <div className="group relative">
-                <label className="block text-xs font-mono text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
-                  <svg className="w-4 h-4 text-neura-pink group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <label className="block text-xs font-mono text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2 animate-fade-in">
+                  <svg className="w-4 h-4 text-neura-pink group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  Email Address
+                  <span className="group-hover:text-neura-pink transition-colors">Email Address</span>
+                  <div className="w-8 h-px bg-gradient-to-r from-neura-pink/0 via-neura-pink/50 to-neura-pink/0 group-hover:from-neura-pink group-hover:to-neura-pink transition-all duration-500"></div>
                 </label>
                 <div className="relative">
+                  {/* Animated background particles for input */}
+                  <div className="absolute inset-0 rounded-xl overflow-hidden">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-1 bg-neura-pink/30 rounded-full animate-ping"
+                        style={{
+                          left: `${20 + i * 30}%`,
+                          top: `${30 + (i % 2) * 40}%`,
+                          animationDelay: `${i * 0.5}s`,
+                          animationDuration: '2s',
+                        }}
+                      ></div>
+                    ))}
+                  </div>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full bg-black border-2 border-neutral-800 hover:border-neura-pink/50 focus:border-neura-pink rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-neura-pink/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(214,51,132,0.2)] relative z-10 min-h-[44px]"
+                    className="w-full bg-black/80 backdrop-blur-sm border-2 border-neutral-800 hover:border-neura-pink/50 focus:border-neura-pink rounded-xl py-3 sm:py-4 px-4 sm:px-5 pl-10 sm:pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-neura-pink/40 transition-all text-white !text-white placeholder-gray-500 font-mono group-hover:shadow-[0_0_20px_rgba(214,51,132,0.2)] group-hover:bg-black/90 relative z-10 min-h-[44px] group-hover:scale-[1.01] transform duration-300"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-neura-pink/0 via-neura-pink/5 to-neura-pink/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0"></div>
+                  {/* Animated cursor effect */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-neura-pink animate-pulse opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
                 </div>
               </div>
 
@@ -404,6 +645,22 @@ const SignInPage: React.FC = () => {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
+        @keyframes particleFloat {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-10px) rotate(90deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+          75% { transform: translateY(-10px) rotate(270deg); }
+        }
+        @keyframes shapeMorph {
+          0%, 100% { border-radius: 50%; transform: rotate(0deg) scale(1); }
+          25% { border-radius: 0%; transform: rotate(90deg) scale(1.1); }
+          50% { border-radius: 25%; transform: rotate(180deg) scale(0.9); }
+          75% { border-radius: 75%; transform: rotate(270deg) scale(1.05); }
+        }
+        @keyframes wavePulse {
+          0%, 100% { opacity: 0.2; transform: scaleX(1); }
+          50% { opacity: 0.6; transform: scaleX(1.2); }
+        }
         .animate-gradient {
           animation: gradient 3s ease infinite;
         }
@@ -412,6 +669,15 @@ const SignInPage: React.FC = () => {
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.8s ease-out;
+        }
+        .animate-particle-float {
+          animation: particleFloat 6s ease-in-out infinite;
+        }
+        .animate-shape-morph {
+          animation: shapeMorph 8s ease-in-out infinite;
+        }
+        .animate-wave-pulse {
+          animation: wavePulse 4s ease-in-out infinite;
         }
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -423,6 +689,32 @@ const SignInPage: React.FC = () => {
         }
         .animate-spin-slow {
           animation: spin 3s linear infinite;
+        }
+        .animate-float-simple {
+          animation: floatSimple 6s ease-in-out infinite;
+        }
+        .animate-float-particle {
+          animation: floatParticle 4s ease-in-out infinite;
+        }
+        .animate-pulse-slow {
+          animation: pulse 4s ease-in-out infinite;
+        }
+        @keyframes floatSimple {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(180deg); }
+        }
+        @keyframes floatParticle {
+          0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+          33% { transform: translateY(-8px) translateX(4px) scale(1.1); }
+          66% { transform: translateY(4px) translateX(-4px) scale(0.9); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
         }
       `}</style>
     </div>
