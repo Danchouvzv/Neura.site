@@ -168,19 +168,32 @@ const SignInPage: React.FC = () => {
       });
 
       if (signInError) {
-        console.error('Sign in error:', signInError);
+        console.error('❌ Sign in error:', signInError);
+        console.error('❌ Error details:', {
+          message: signInError.message,
+          status: signInError.status,
+          name: signInError.name,
+          stack: signInError.stack
+        });
+
         // Provide more helpful error messages
-        if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('400')) {
-          setError('Invalid email or password. Please check your credentials or sign up if you don\'t have an account.');
-        } else if (signInError.message.includes('Email not confirmed')) {
-          setError('Please check your email and confirm your account before signing in.');
-        } else if (signInError.message.includes('For security purposes') || signInError.message.includes('429') || signInError.message.includes('Too Many Requests')) {
-          const match = signInError.message.match(/(\d+)\s+seconds/);
+        let errorMessage = 'Authentication failed. Please try again.';
+
+        if (signInError.message?.includes('Invalid login credentials') || signInError.message?.includes('400')) {
+          errorMessage = 'Invalid email or password. Please check your credentials or sign up if you don\'t have an account.';
+        } else if (signInError.message?.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and confirm your account before signing in.';
+        } else if (signInError.message?.includes('For security purposes') || signInError.message?.includes('429') || signInError.message?.includes('Too Many Requests')) {
+          const match = signInError.message?.match(/(\d+)\s+seconds/);
           const seconds = match ? match[1] : '60';
-          setError(`Too many sign-in attempts. Please wait ${seconds} seconds before trying again.`);
-        } else {
-          setError(signInError.message || 'Authentication failed. Please try again.');
+          errorMessage = `Too many sign-in attempts. Please wait ${seconds} seconds before trying again.`;
+        } else if (signInError.message?.includes('Network request failed') || signInError.message?.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (signInError.message) {
+          errorMessage = signInError.message;
         }
+
+        setError(errorMessage);
         setIsLoading(false);
         return;
       }
@@ -191,31 +204,26 @@ const SignInPage: React.FC = () => {
         // Create user profile in Supabase if it doesn't exist
         // This happens when user confirms email and signs in for the first time
         try {
-          // Check if profile exists
-          const { data: existingProfile } = await supabase
+          // Try to create profile (upsert to handle conflicts)
+          const { error: profileError } = await supabase
             .from('users')
-            .select('id')
-            .eq('id', data.user.id)
-            .single();
+            .upsert({
+              id: data.user.id,
+              username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || email.split('@')[0],
+              email: data.user.email || email.toLowerCase(),
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'id'
+            });
 
-          if (!existingProfile) {
-            // Create profile in Supabase
-            const { error: profileError } = await supabase
-              .from('users')
-              .insert({
-                id: data.user.id,
-                username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || email.split('@')[0],
-                email: data.user.email || email.toLowerCase(),
-              });
-
-            if (profileError) {
-              console.warn('⚠️ Profile creation error:', profileError.message);
-            } else {
-              console.log('✅ User profile created successfully in Supabase');
-            }
+          if (profileError && profileError.code !== '23505') { // Ignore unique constraint violations
+            console.warn('⚠️ Profile creation error:', profileError.message);
+          } else {
+            console.log('✅ User profile created/updated successfully in Supabase');
           }
         } catch (profileErr: any) {
-          console.warn('⚠️ Error checking/creating profile:', profileErr.message);
+          console.warn('⚠️ Error creating/updating profile:', profileErr.message);
+          // Continue anyway - profile is not critical
         }
         
         // Check if user exists in TeamHub, if not create them
@@ -556,7 +564,7 @@ const SignInPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div className="flex-1">
-                      <span className="font-medium block mb-1">{error}</span>
+                      <span className="font-medium block mb-1">{typeof error === 'string' ? error : error?.message || 'An error occurred'}</span>
                       {error.includes('Invalid email or password') && (
                         <p className="text-xs text-red-300/80 mt-2">
                           Don't have an account?{' '}

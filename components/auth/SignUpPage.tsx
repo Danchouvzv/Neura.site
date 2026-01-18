@@ -208,19 +208,34 @@ const SignUpPage: React.FC = () => {
       });
 
       if (signUpError) {
-        console.error('Sign up error:', signUpError);
+        console.error('❌ Sign up error:', signUpError);
+        console.error('❌ Error details:', {
+          message: signUpError.message,
+          status: signUpError.status,
+          name: signUpError.name,
+          stack: signUpError.stack
+        });
+
         // Provide more helpful error messages
-        if (signUpError.message.includes('User already registered') || signUpError.message.includes('already been registered')) {
-          setError('This email is already registered. Please sign in instead.');
-        } else if (signUpError.message.includes('Password')) {
-          setError('Password is too weak. Please use a stronger password.');
-        } else if (signUpError.message.includes('For security purposes') || signUpError.message.includes('429') || signUpError.message.includes('Too Many Requests')) {
-          const match = signUpError.message.match(/(\d+)\s+seconds/);
+        let errorMessage = 'Registration failed. Please try again.';
+
+        if (signUpError.message?.includes('User already registered') || signUpError.message?.includes('already been registered')) {
+          errorMessage = 'This email is already registered. Please sign in instead.';
+        } else if (signUpError.message?.includes('Password')) {
+          errorMessage = 'Password is too weak. Please use a stronger password.';
+        } else if (signUpError.message?.includes('For security purposes') || signUpError.message?.includes('429') || signUpError.message?.includes('Too Many Requests')) {
+          const match = signUpError.message?.match(/(\d+)\s+seconds/);
           const seconds = match ? match[1] : '60';
-          setError(`Too many registration attempts. Please wait ${seconds} seconds before trying again.`);
-        } else {
-          setError(signUpError.message || 'Registration failed. Please try again.');
+          errorMessage = `Too many registration attempts. Please wait ${seconds} seconds before trying again.`;
+        } else if (signUpError.message?.includes('Network request failed') || signUpError.message?.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (signUpError.message?.includes('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (signUpError.message) {
+          errorMessage = signUpError.message;
         }
+
+        setError(errorMessage);
         setIsLoading(false);
         return;
       }
@@ -236,23 +251,25 @@ const SignUpPage: React.FC = () => {
           // Wait a bit for auth session to be established
           await new Promise(resolve => setTimeout(resolve, 500));
           
+          // Use upsert instead of insert to handle conflicts
           const { error: profileError } = await supabase
             .from('users')
-            .insert({
+            .upsert({
               id: data.user.id,
               username: username || email.split('@')[0],
               email: email.toLowerCase(),
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'id'
             });
 
-          if (profileError) {
+          if (profileError && profileError.code !== '23505') { // Ignore unique constraint violations
             console.warn('⚠️ Profile creation error (non-critical):', profileError.message);
             if (profileError.code === 'PGRST301' || profileError.message.includes('401') || profileError.message.includes('Unauthorized')) {
               console.log('ℹ️ Profile will be created when user confirms email and signs in');
             }
-            // Don't fail registration if profile creation fails - this is optional
-            // The user can still use the Q&A platform, profile will be created when they first interact
           } else {
-            console.log('✅ User profile created successfully in Supabase');
+            console.log('✅ User profile created/updated successfully in Supabase');
           }
         } catch (profileErr: any) {
           console.warn('⚠️ Profile creation failed (non-critical):', profileErr.message);
@@ -628,7 +645,7 @@ const SignUpPage: React.FC = () => {
                   <svg className="w-5 h-5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="font-medium">{error}</span>
+                  <span className="font-medium">{typeof error === 'string' ? error : error?.message || 'An error occurred'}</span>
                 </div>
               )}
 

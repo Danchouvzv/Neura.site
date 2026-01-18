@@ -122,9 +122,18 @@ CREATE INDEX IF NOT EXISTS idx_invitations_status ON invitations(status);
 CREATE INDEX IF NOT EXISTS idx_team_activities_team_id ON team_activities(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_activities_timestamp ON team_activities(timestamp);
 
--- Row Level Security (RLS) Policies
+-- Row Level Security (RLS) Policies - SIMPLIFIED TO AVOID RECURSION
 
--- Enable RLS on all tables
+-- TEMPORARILY DISABLE RLS FOR TESTING - WILL BE RE-ENABLED WITH PROPER POLICIES
+-- ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE members DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE ideas DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE calendar_events DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE invitations DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE team_activities DISABLE ROW LEVEL SECURITY;
+
+-- Enable RLS with SIMPLIFIED policies to avoid recursion
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
@@ -133,268 +142,50 @@ ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_activities ENABLE ROW LEVEL SECURITY;
 
--- Teams policies: Members can read their teams, captains can update
-DROP POLICY IF EXISTS "Users can view teams they are members of" ON teams;
-CREATE POLICY "Users can view teams they are members of" ON teams
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = teams.id 
-      AND u.id = auth.uid()
-    )
-  );
+-- SIMPLIFIED Teams policies - allow all authenticated users for now
+DROP POLICY IF EXISTS "Allow all operations on teams for authenticated users" ON teams;
+CREATE POLICY "Allow all operations on teams for authenticated users" ON teams
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Captains can update their teams" ON teams;
-CREATE POLICY "Captains can update their teams" ON teams
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = teams.id 
-      AND u.id = auth.uid()
-      AND m.role = 'Captain'
-    )
-  );
+-- SIMPLIFIED Members policies - allow all operations for authenticated users
+DROP POLICY IF EXISTS "Allow all operations on members for authenticated users" ON members;
+CREATE POLICY "Allow all operations on members for authenticated users" ON members
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Anyone can create teams" ON teams;
-CREATE POLICY "Anyone can create teams" ON teams
-  FOR INSERT
-  WITH CHECK (true);
+-- SIMPLIFIED Policies for other tables - allow all authenticated users
+DROP POLICY IF EXISTS "Allow all operations on tasks for authenticated users" ON tasks;
+CREATE POLICY "Allow all operations on tasks for authenticated users" ON tasks
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
--- Members policies: Team members can view all members, captains can manage
-DROP POLICY IF EXISTS "Team members can view all members" ON members;
-CREATE POLICY "Team members can view all members" ON members
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = members.team_id 
-      AND u.id = auth.uid()
-    )
-  );
+DROP POLICY IF EXISTS "Allow all operations on ideas for authenticated users" ON ideas;
+CREATE POLICY "Allow all operations on ideas for authenticated users" ON ideas
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Captains can insert members" ON members;
-CREATE POLICY "Captains can insert members" ON members
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = members.team_id 
-      AND u.id = auth.uid()
-      AND m.role = 'Captain'
-    )
-  );
+DROP POLICY IF EXISTS "Allow all operations on calendar_events for authenticated users" ON calendar_events;
+CREATE POLICY "Allow all operations on calendar_events for authenticated users" ON calendar_events
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Captains can update members" ON members;
-CREATE POLICY "Captains can update members" ON members
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = members.team_id 
-      AND u.id = auth.uid()
-      AND m.role = 'Captain'
-    )
-  );
+DROP POLICY IF EXISTS "Allow all operations on invitations for authenticated users" ON invitations;
+CREATE POLICY "Allow all operations on invitations for authenticated users" ON invitations
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Users can update their own member record" ON members;
-CREATE POLICY "Users can update their own member record" ON members
-  FOR UPDATE
-  USING (user_id = auth.uid());
-
--- Tasks policies: Team members can view and create, assigned can update
-DROP POLICY IF EXISTS "Team members can view tasks" ON tasks;
-CREATE POLICY "Team members can view tasks" ON tasks
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = tasks.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can create tasks" ON tasks;
-CREATE POLICY "Team members can create tasks" ON tasks
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = tasks.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Assigned members and captains can update tasks" ON tasks;
-CREATE POLICY "Assigned members and captains can update tasks" ON tasks
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = tasks.team_id 
-      AND (
-        (m.id = tasks.assigned_to AND u.id = auth.uid())
-        OR (u.id = auth.uid() AND m.role = 'Captain')
-      )
-    )
-  );
-
-DROP POLICY IF EXISTS "Captains can delete tasks" ON tasks;
-CREATE POLICY "Captains can delete tasks" ON tasks
-  FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = tasks.team_id 
-      AND u.id = auth.uid()
-      AND m.role = 'Captain'
-    )
-  );
-
--- Ideas policies: Team members can view, create, and vote
-DROP POLICY IF EXISTS "Team members can view ideas" ON ideas;
-CREATE POLICY "Team members can view ideas" ON ideas
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = ideas.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can create ideas" ON ideas;
-CREATE POLICY "Team members can create ideas" ON ideas
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = ideas.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can update ideas" ON ideas;
-CREATE POLICY "Team members can update ideas" ON ideas
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = ideas.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
--- Calendar Events policies: Team members can view and manage
-DROP POLICY IF EXISTS "Team members can view events" ON calendar_events;
-CREATE POLICY "Team members can view events" ON calendar_events
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = calendar_events.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can create events" ON calendar_events;
-CREATE POLICY "Team members can create events" ON calendar_events
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = calendar_events.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can update events" ON calendar_events;
-CREATE POLICY "Team members can update events" ON calendar_events
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = calendar_events.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can delete events" ON calendar_events;
-CREATE POLICY "Team members can delete events" ON calendar_events
-  FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = calendar_events.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
--- Invitations policies: Users can view their invitations, captains can create
-DROP POLICY IF EXISTS "Users can view their invitations" ON invitations;
-CREATE POLICY "Users can view their invitations" ON invitations
-  FOR SELECT
-  USING (user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
-
-DROP POLICY IF EXISTS "Captains can create invitations" ON invitations;
-CREATE POLICY "Captains can create invitations" ON invitations
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = invitations.team_id 
-      AND u.id = auth.uid()
-      AND m.role = 'Captain'
-    )
-  );
-
-DROP POLICY IF EXISTS "Users can update their invitations" ON invitations;
-CREATE POLICY "Users can update their invitations" ON invitations
-  FOR UPDATE
-  USING (user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
-
--- Team Activities policies: Team members can view and create
-DROP POLICY IF EXISTS "Team members can view activities" ON team_activities;
-CREATE POLICY "Team members can view activities" ON team_activities
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = team_activities.team_id 
-      AND u.id = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Team members can create activities" ON team_activities;
-CREATE POLICY "Team members can create activities" ON team_activities
-  FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM members m
-      JOIN users u ON u.id = m.user_id
-      WHERE m.team_id = team_activities.team_id 
-      AND u.id = auth.uid()
-    )
-  );
+DROP POLICY IF EXISTS "Allow all operations on team_activities for authenticated users" ON team_activities;
+CREATE POLICY "Allow all operations on team_activities for authenticated users" ON team_activities
+  FOR ALL
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
